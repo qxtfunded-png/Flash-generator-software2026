@@ -42,8 +42,8 @@ const PLANS = [
 const PAYMENT_METHODS = [
   { 
     id: 'binance', 
-    name: 'Binance Pay', 
-    address: '1135401445', 
+    name: 'BINNACEPAY', 
+    address: '1219267054', 
     type: 'Binance ID',
     logo: 'https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/bnb.png'
   },
@@ -734,7 +734,7 @@ export default function App() {
                       <div className="text-[9px] text-white/40 uppercase font-mono">{selectedPaymentMethod.type} Details</div>
                       <div className="flex items-center gap-2">
                         <code className="flex-1 p-2 bg-white/5 rounded-lg text-[10px] break-all font-mono text-white/80">
-                          {selectedPaymentMethod.id === 'binance' ? `ID: ${selectedPaymentMethod.address}\nName: Anonymous 1818` : selectedPaymentMethod.address}
+                          {selectedPaymentMethod.id === 'binance' ? `ID: ${selectedPaymentMethod.address}\nName: FLASH USDT PAYMENT` : selectedPaymentMethod.address}
                         </code>
                         <button 
                           onClick={() => handleCopy(selectedPaymentMethod.address)}
