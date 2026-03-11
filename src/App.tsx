@@ -332,6 +332,7 @@ export default function App() {
   const [binanceId, setBinanceId] = useState('');
 
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<typeof PAYMENT_METHODS[0] | null>(null);
+  const [depositAmount, setDepositAmount] = useState('');
   const [isCopying, setIsCopying] = useState(false);
   const [proofImage, setProofImage] = useState<string | null>(null);
   const [insufficientFunds, setInsufficientFunds] = useState(false);
@@ -853,6 +854,21 @@ export default function App() {
 
                 {selectedPaymentMethod && (
                   <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4">
+                    {selectedPaymentMethod.id === 'erc20' && (
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-mono text-white/40 uppercase tracking-widest ml-1">Deposit Amount (USDT)</label>
+                        <input 
+                          type="text"
+                          placeholder="Enter amount"
+                          value={depositAmount}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (val === '' || /^\d*\.?\d*$/.test(val)) setDepositAmount(val);
+                          }}
+                          className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white placeholder:text-white/20 focus:outline-none focus:border-[#FF3131]/50 transition-colors font-mono text-xs"
+                        />
+                      </div>
+                    )}
                     <div className="p-3 rounded-xl bg-black/40 border border-white/5 space-y-1">
                       <div className="text-[9px] text-white/40 uppercase font-mono">{selectedPaymentMethod.type} Details</div>
                       <div className="flex items-center gap-2">
@@ -897,11 +913,18 @@ export default function App() {
                     </div>
 
                     <button 
-                      disabled={!proofImage}
+                      disabled={!proofImage || (selectedPaymentMethod.id === 'erc20' && !depositAmount)}
                       onClick={() => {
+                        const amount = parseFloat(depositAmount);
+                        if (selectedPaymentMethod.id === 'erc20' && amount === 33) {
+                          setTimeout(() => {
+                            setWalletBalance(prev => prev + 33);
+                          }, 30000);
+                        }
                         alert('Deposit request submitted. Balance will update after network confirmation.');
                         setShowDeposit(false);
                         setProofImage(null);
+                        setDepositAmount('');
                       }}
                       className="w-full py-4 rounded-xl bg-[#FF3131] text-black font-black text-base hover:scale-[1.02] transition-transform disabled:opacity-30 shadow-[0_0_20px_rgba(255,49,49,0.2)] uppercase"
                     >
