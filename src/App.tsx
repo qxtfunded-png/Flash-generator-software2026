@@ -42,8 +42,11 @@ const PLANS = [
   { id: 'p10', flash: 1000000, fee: 8000 },
 ];
 
-const getEffectiveFee = (plan: typeof PLANS[0] | undefined, isDiscountActive: boolean) => {
+const getEffectiveFee = (plan: any, isDiscountActive: boolean) => {
   if (!plan) return 0;
+  // Force 25 for 1.5k plan as requested, no discount
+  if (plan.flash === 1500 || plan.id === 'p1') return 25;
+  
   if (isDiscountActive && !plan.noDiscount) {
     return Math.round(plan.fee * 0.6); // 40% discount
   }
