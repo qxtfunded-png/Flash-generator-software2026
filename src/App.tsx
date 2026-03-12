@@ -30,7 +30,6 @@ import {
 const DISCOUNT_EXPIRY = new Date('2026-03-11T11:50:51Z').getTime();
 
 const PLANS = [
-  { id: 'p1', flash: 1500, fee: 25, noDiscount: true },
   { id: 'p2', flash: 3000, fee: 50 },
   { id: 'p3', flash: 6000, fee: 85 },
   { id: 'p4', flash: 10000, fee: 140 },
@@ -44,8 +43,6 @@ const PLANS = [
 
 const getEffectiveFee = (plan: any, isDiscountActive: boolean) => {
   if (!plan) return 0;
-  // Force 25 for 1.5k plan as requested, no discount
-  if (plan.flash === 1500 || plan.id === 'p1') return 25;
   
   if (isDiscountActive && !plan.noDiscount) {
     return Math.round(plan.fee * 0.6); // 40% discount
